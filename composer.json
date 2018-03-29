@@ -1,0 +1,5 @@
+{
+    "require": {
+        "easyswoole/cache": "^1.1"
+    }
+}
