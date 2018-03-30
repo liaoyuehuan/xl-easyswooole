@@ -39,4 +39,6 @@ interface ITokenService
 
     function updateStatus(string $id, int $status): bool;
 
+    function updateTimes(string $id,int $times): bool;
+
 }

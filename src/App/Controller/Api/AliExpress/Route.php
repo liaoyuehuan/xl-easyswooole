@@ -94,7 +94,7 @@ class Route extends AbstractBase
     {
         try {
             $param = $this->getParam();
-            file_put_contents('/var/www/easyswoole/App/Controller/Api/AliExpress/param.txt', json_encode($param));
+//            file_put_contents('/var/www/easyswoole/App/Controller/Api/AliExpress/param.txt', json_encode($param));
             $response = AliexpressPub::getInstance()->execute($param);
             $this->hasParam() && $response = json_encode($response);
 //            file_put_contents('/var/www/easyswoole/App/Controller/Api/AliExpress/data.txt', $response);

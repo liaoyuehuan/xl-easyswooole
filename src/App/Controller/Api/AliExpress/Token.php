@@ -74,7 +74,7 @@ class Token extends AbstractBase
         $validate = new Validate();
         $param = $this->request()->getRequestParam();
         $validate->addField('account')->withRule(Rule::REQUIRED)->withMsg('account must be required');
-        $validate->addField('status')->withRule(Rule::REQUIRED)->withMsg('account must be required');
+        $validate->addField('status')->withRule(Rule::REQUIRED)->withMsg('status must be required');
         $validate->addField('status')->withRule(Rule::IN,
             TokenStatusConst::OPEN,
             TokenStatusConst::CLOSED
@@ -93,6 +93,36 @@ class Token extends AbstractBase
                 } else {
                     $this->response()->writeJsonWithNoCode(Status::CODE_OK,
                         new Result(ResultAckConst::FAIL, 'update token status error'));
+                };
+            } catch (\RuntimeException $re) {
+                $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                    new Result(ResultAckConst::FAIL, $re->getMessage()));
+            }
+        }
+    }
+
+    public function updateTokenTimes()
+    {
+        $validate = new Validate();
+        $param = $this->request()->getRequestParam();
+        $validate->addField('account')->withRule(Rule::REQUIRED)->withMsg('account must be required');
+        $validate->addField('times')->withRule(Rule::REQUIRED)->withMsg('times must be required');
+        $validate->addField('times')->withRule(Rule::MIN,1
+        )->withMsg('times must be larger 1');
+        $message = $validate->validate($param);
+        if ($message->hasError()) {
+            $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                new Result(ResultAckConst::FAIL, $message->all()));
+        } else {
+            $account = $param['account'];
+            $times = $param['times'];
+            try {
+                if (TokenService::getInstance()->updateTimes($account, $times)) {
+                    $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                        new Result(ResultAckConst::SUCCESS, 'update token times success'));
+                } else {
+                    $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                        new Result(ResultAckConst::FAIL, 'update token times error'));
                 };
             } catch (\RuntimeException $re) {
                 $this->response()->writeJsonWithNoCode(Status::CODE_OK,

@@ -129,5 +129,16 @@ class TokenService extends AbstractService implements ITokenService
         return $this->tokenModel->update($id, $token);
     }
 
+    function updateTimes(string $id, int $times): bool
+    {
+        $token = $this->tokenModel->get($id);
+        if (!$token) {
+            throw  new \RuntimeException('account not found:update error');
+        }
+        $token->setLimitApiTimes($times);
+        $token->setMTime(time());
+        return $this->tokenModel->update($id, $token);
+    }
+
 
 }
