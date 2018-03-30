@@ -80,6 +80,16 @@ class Token extends SplBean
     /**
      * @var int
      */
+    protected $limit_api_times;
+
+    /**
+     * @var int
+     */
+    protected $status ;
+
+    /**
+     * @var int
+     */
     protected $c_time;
 
     /**
@@ -91,7 +101,7 @@ class Token extends SplBean
     {
         empty($this->s) && $this->sp = 'ae';
         empty($this->c_time) && $this->c_time = time();
-        empty($this->c_time) &&  $this->m_time = time();
+        empty($this->m_time) &&  $this->m_time = time();
     }
 
     /**
@@ -303,6 +313,40 @@ class Token extends SplBean
     {
         $this->company_id = $company_id;
     }
+
+    /**
+     * @return int
+     */
+    public function getLimitApiTimes(): ?int
+    {
+        return $this->limit_api_times;
+    }
+
+    /**
+     * @param int $limit_api_times
+     */
+    public function setLimitApiTimes(?int $limit_api_times): void
+    {
+        $this->limit_api_times = $limit_api_times;
+    }
+
+    /**
+     * @return int
+     */
+    public function getStatus(): ?int
+    {
+        return $this->status;
+    }
+
+    /**
+     * @param int $status
+     */
+    public function setStatus(?int $status): void
+    {
+        $this->status = $status;
+    }
+
+
 
     /**
      * @return int

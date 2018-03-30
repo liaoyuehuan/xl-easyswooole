@@ -36,4 +36,7 @@ interface ITokenService
     function select($param): array;
 
     function getAccountByAccessToken(string $accessToken): ?string;
+
+    function updateStatus(string $id, int $status): bool;
+
 }

@@ -9,6 +9,7 @@
 namespace App\Controller\Api\AliExpress;
 
 
+use App\Consts\TokenStatusConst;
 use App\Controller\Api\AbstractBase;
 use App\Http\Result;
 use App\Http\ResultAckConst;
@@ -53,16 +54,51 @@ class Token extends AbstractBase
         }
     }
 
-    public function getAllAccountRequestTimes(){
+    public function getAllAccountRequestTimes()
+    {
         $list = UserRequestTimesService::getInstance()->getAllTodayUserRequestApiTime();
         $this->response()->writeJsonWithNoCode(Status::CODE_OK,
             new Result(ResultAckConst::SUCCESS, $list));
     }
 
-    public function getTenTopAccountRequestTime(){
+    public function getTenTopAccountRequestTime()
+    {
         $list = UserRequestTimesService::getInstance()->getUserTopRequestApiTimeList(10);
         $this->response()->writeJsonWithNoCode(Status::CODE_OK,
             new Result(ResultAckConst::SUCCESS, $list));
+    }
+
+
+    public function updateTokenStatus()
+    {
+        $validate = new Validate();
+        $param = $this->request()->getRequestParam();
+        $validate->addField('account')->withRule(Rule::REQUIRED)->withMsg('account must be required');
+        $validate->addField('status')->withRule(Rule::REQUIRED)->withMsg('account must be required');
+        $validate->addField('status')->withRule(Rule::IN,
+            TokenStatusConst::OPEN,
+            TokenStatusConst::CLOSED
+        )->withMsg('status value must be 0 or 1');
+        $message = $validate->validate($param);
+        if ($message->hasError()) {
+            $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                new Result(ResultAckConst::FAIL, $message->all()));
+        } else {
+            $account = $param['account'];
+            $status = $param['status'];
+            try {
+                if (TokenService::getInstance()->updateStatus($account, $status)) {
+                    $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                        new Result(ResultAckConst::SUCCESS, 'update token status success'));
+                } else {
+                    $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                        new Result(ResultAckConst::FAIL, 'update token status error'));
+                };
+            } catch (\RuntimeException $re) {
+                $this->response()->writeJsonWithNoCode(Status::CODE_OK,
+                    new Result(ResultAckConst::FAIL, $re->getMessage()));
+            }
+        }
     }
 
     function onRequest($actionName)

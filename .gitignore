@@ -6,3 +6,5 @@ src/swoole_log.txt
 vendor/
 composer.lock
 ide_helper
+src\Log
+src\Temp

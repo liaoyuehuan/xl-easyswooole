@@ -16,7 +16,6 @@ use App\Service\AbstractService;
 use App\Service\ITokenService;
 use App\Vendor\Aliexpress\AliexpressRuntimeException;
 use Core\Component\Di;
-use Core\Http\Response;
 use Core\Swoole\Async\Redis;
 
 class TokenService extends AbstractService implements ITokenService
@@ -45,6 +44,10 @@ class TokenService extends AbstractService implements ITokenService
     }
 
 
+    /**
+     * @param $id
+     * @return Token
+     */
     function get($id)
     {
         if (empty($id)) {
@@ -65,8 +68,8 @@ class TokenService extends AbstractService implements ITokenService
 
     function merge($data): bool
     {
-        $data['expire_time'] =  $data['expire_time'] / 1000;
-        $data['refresh_token_valid_time'] =  $data['refresh_token_valid_time'] / 1000;
+        $data['expire_time'] = $data['expire_time'] / 1000;
+        $data['refresh_token_valid_time'] = $data['refresh_token_valid_time'] / 1000;
         $token = $this->tokenModel->createSplBeanFromData($data);
         return $this->tokenModel->merge($token);
     }
@@ -81,35 +84,49 @@ class TokenService extends AbstractService implements ITokenService
         return $this->tokenModel->select();
     }
 
-    function pagination($param = []){
-        $limitParam  = $this->getLimitParamFromParam($param);
-        return $this->tokenModel->pagination($limitParam->page,$limitParam->limit,function (\MysqliDb $db) use($param){
-            if(!empty($param['user_nick'])) $db->where('user_nick',$param['user_nick']);
+    function pagination($param = [])
+    {
+        $limitParam = $this->getLimitParamFromParam($param);
+        return $this->tokenModel->pagination($limitParam->page, $limitParam->limit, function (\MysqliDb $db) use ($param) {
+            if (!empty($param['user_nick'])) $db->where('user_nick', $param['user_nick']);
         });
     }
 
     function getAccountByAccessToken(string $accessToken): ?string
     {
         $data = $this->redis->get($this->getCacheAccessTokenTrueKey($accessToken));
-        if(empty($data) ){
-            $account = $this->tokenModel->getOne(function (\MysqliDb $db) use ($accessToken){
-               $db->where('access_token',$accessToken);
+        if (empty($data)) {
+            $account = $this->tokenModel->getOne(function (\MysqliDb $db) use ($accessToken) {
+                $db->where('access_token', $accessToken);
             });
             if (!empty($account)) {
                 $data = $account->getUserNick();
                 $this->redisPool->set(
-                $this->getCacheAccessTokenTrueKey($accessToken),
-                $data,
-                'EX',
-                CustomConst::CACHE_EXPIRE_SECONDS,
-                function (){});
+                    $this->getCacheAccessTokenTrueKey($accessToken),
+                    $data,
+                    'EX',
+                    CustomConst::CACHE_EXPIRE_SECONDS,
+                    function () {
+                    });
             }
         }
         return $data;
     }
 
-    private function getCacheAccessTokenTrueKey(string $accessToken){
-        return CustomConst::CACHE_ACCESS_TOKEN_TO_ACCOUNT.'-'.$accessToken;
+    private function getCacheAccessTokenTrueKey(string $accessToken)
+    {
+        return CustomConst::CACHE_ACCESS_TOKEN_TO_ACCOUNT . '-' . $accessToken;
+    }
+
+    function updateStatus(string $id, int $status): bool
+    {
+        $token = $this->tokenModel->get($id);
+        if (!$token) {
+            throw  new \RuntimeException('account not found:update error');
+        }
+        $token->setStatus($status);
+        $token->setMTime(time());
+        return $this->tokenModel->update($id, $token);
     }
 
 
