@@ -18,6 +18,7 @@ use App\Service\ITokenService;
 use App\Service\IUserRequestApiDayService;
 use Core\Component\Di;
 use Core\Swoole\Async\Redis;
+use Swoole\Mysql\Exception;
 
 class UserRequestApiDayService extends AbstractService implements IUserRequestApiDayService
 {
@@ -47,15 +48,20 @@ class UserRequestApiDayService extends AbstractService implements IUserRequestAp
 
     function syncRedisRequestDataToDb(): void
     {
-        $redisList = $this->userRequestTimesService->getAllTodayUserRequestApiTime();
+        //取上一天的请求次数，减去2小时的秒数
+        $time = time() - 2 * 3600;
+        if (false === $this->userRequestTimesService->existsCacheAeSessionKey($time)) {
+            throw new  \RuntimeException('this date sync task has been executed');
+        }
+        $redisList = $this->userRequestTimesService->getAllTodayUserRequestApiTime($time);
         $userRequestApiDayList = array_map(function ($value) {
             $userRequestApiDay = new UserRequestApiDay();
             $userRequestApiDay->setAccount($value['account']);
             $userRequestApiDay->setTimes($value['times']);
             return $userRequestApiDay;
         }, $redisList);
-        $this->userRequestTimesService->flushAllTodayUserRequestApiTime();
         $this->userRequestApiDayModel->insertMulti($userRequestApiDayList);
+        $this->userRequestTimesService->flushAllTodayUserRequestApiTime($time);
     }
 
 }

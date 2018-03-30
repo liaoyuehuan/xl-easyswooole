@@ -5,12 +5,14 @@
  * Date: 2018/3/24
  * Time: 16:25
  */
+
 namespace Task;
 
 use App\Service\Impl\UserRequestApiDayService;
 use App\Service\IUserRequestApiDayService;
+use Swoole\Mysql\Exception;
 
-class SyncRedisToDbTask implements  ITask
+class SyncRedisToDbTask implements ITask
 {
 
     /**
@@ -25,7 +27,15 @@ class SyncRedisToDbTask implements  ITask
 
     function run(): void
     {
-        $this->userRequestApiDayService->syncRedisRequestDataToDb();
+        try {
+            $this->userRequestApiDayService->syncRedisRequestDataToDb();
+            echo 'success';
+        } catch (\RuntimeException $re) {
+            echo $re->getFile() . ' - ' . $re->getLine() . ':' . $re->getMessage();
+        } catch (\Exception $e) {
+            $e->getTraceAsString();
+        }
+        echo PHP_EOL;
     }
 
 }

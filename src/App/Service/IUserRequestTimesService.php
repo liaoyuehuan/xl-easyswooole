@@ -25,4 +25,6 @@ interface IUserRequestTimesService
 
     function flushAllTodayUserRequestApiTime(): void;
 
+    function existsCacheAeSessionKey(?int $time): bool;
+
 }

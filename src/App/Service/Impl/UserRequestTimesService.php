@@ -16,10 +16,9 @@ use App\Model\ITokenModel;
 use App\Service\AbstractService;
 use App\Service\ITokenService;
 use App\Service\IUserRequestTimesService;
+use App\Utils\CacheUtils;
 use Core\Component\Di;
 use Core\Swoole\Async\Redis;
-use Core\Swoole\Async\Redis\AbstractHandler;
-use http\Env\Response;
 
 class UserRequestTimesService extends AbstractService implements IUserRequestTimesService
 {
@@ -43,7 +42,6 @@ class UserRequestTimesService extends AbstractService implements IUserRequestTim
      */
     private $tokenService;
 
-    private $prefix = 'ae_session_key';
 
     private $sortedSetKey = 'ae_session_key_sorted_key';
 
@@ -58,13 +56,15 @@ class UserRequestTimesService extends AbstractService implements IUserRequestTim
 
     function increaseBySessionKey(string $sessionKey): void
     {
-        $this->redisPool->hincrby(CustomConst::CACHE_AE_SESSION_KEY,$sessionKey,1,function (){});
+        $this->redisPool->hincrby(
+            CacheUtils::getDateKey(CustomConst::CACHE_AE_SESSION_KEY), $sessionKey, 1, function () {
+        });
     }
 
     function getTimesByAccount(string $account): ?int
     {
         $token = $this->tokenModel->get($account);
-        if (!empty($token)){
+        if (!empty($token)) {
             $sessionKey = $token->getAccessToken();
             return $this->getTimesBySessionKey($sessionKey);
         } else {
@@ -72,52 +72,57 @@ class UserRequestTimesService extends AbstractService implements IUserRequestTim
         }
     }
 
-    function getTimesBySessionKey(string $sessionKey): int
+    function getTimesBySessionKey(string $sessionKey, ?int $time = null): int
     {
-        return (int)$this->redis->hget(CustomConst::CACHE_AE_SESSION_KEY,$sessionKey);
-    }
-
-    function getTrueKey(string $sessionKey)
-    {
-        return CustomConst::CACHE_AE_SESSION_KEY . $sessionKey;
+        return (int)$this->redis->hget(
+            CacheUtils::getDateKey(CustomConst::CACHE_AE_SESSION_KEY, $time), $sessionKey
+        );
     }
 
 
-    function getAllTodayUserRequestApiTime(): array
+    function getAllTodayUserRequestApiTime(?int $time = null): array
     {
         $tokens = $this->tokenModel->select();
-        return array_map(function (Token $token){
+        return array_map(function (Token $token) use ($time) {
             return [
                 'account' => $token->getUserNick(),
-                'times' => $this->getTimesBySessionKey($token->getAccessToken())
+                'times' => $this->getTimesBySessionKey($token->getAccessToken(), $time)
             ];
-        },$tokens);
+        }, $tokens);
     }
 
-    function increaseAndPushSortedSetBySessionKey(string $sessionKey): void
+    function increaseAndPushSortedSetBySessionKey(string $sessionKey, ?int $time = null): void
     {
-        $this->redisPool->zincrby($this->sortedSetKey,1,$sessionKey,function (){});
+        $this->redisPool->zincrby(
+            CacheUtils::getDateKey($this->sortedSetKey, $time), 1, $sessionKey, function () {
+        });
     }
 
     function getUserTopRequestApiTimeList(int $limit = 10): array
     {
         $list = $this->getSessionKeyTopRequestApiTimeList($limit);
         $resultList = [];
-        array_walk($list,function ($times,$sessionKey) use (&$resultList){
+        array_walk($list, function ($times, $sessionKey) use (&$resultList) {
             $account = $this->tokenService->getAccountByAccessToken($sessionKey);
             $resultList[$account] = $times;
         });
         return $resultList;
     }
 
-    function getSessionKeyTopRequestApiTimeList(int $limit): array {
-        return $this->redis->zRevRange($this->sortedSetKey,0,$limit,true);
-    }
-
-    function flushAllTodayUserRequestApiTime(): void
+    function getSessionKeyTopRequestApiTimeList(int $limit): array
     {
-        $this->redis->del(CustomConst::CACHE_AE_SESSION_KEY);
+        return $this->redis->zRevRange(CacheUtils::getDateKey($this->sortedSetKey), 0, $limit, true);
     }
 
+    function flushAllTodayUserRequestApiTime(?int $time = null): void
+    {
+        $this->redis->del(CacheUtils::getDateKey(CustomConst::CACHE_AE_SESSION_KEY, $time));
+        $this->redis->del(CacheUtils::getDateKey($this->sortedSetKey, $time));
+    }
+
+    function existsCacheAeSessionKey(?int $time): bool
+    {
+        return $this->redis->exists(CacheUtils::getDateKey(CustomConst::CACHE_AE_SESSION_KEY, $time));
+    }
 
 }

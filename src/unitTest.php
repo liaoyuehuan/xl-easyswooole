@@ -7,3 +7,4 @@
  */
 require_once 'Core/Core.php';
 \Core\Core::getInstance()->frameWorkInitialize();
+$data = \App\Service\Impl\UserRequestTimesService::getInstance()->getSessionKeyTopRequestApiTimeList(10);

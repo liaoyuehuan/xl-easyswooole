@@ -37,23 +37,23 @@ class Route extends AbstractBase
 
     public function onRequest($actionName)
     {
-//        if (false === \SpiUtils::checkSign4FileRequest(
-//                $this->request()->getRequestParam(),
-//                Config::getInstance()->getConf('ALI_EXPRESS.SECRET_KEY')
-//            )
-//        ){
-//            $result = [
-//                'sub_message' => 'Illegal request',
-//                'flag' => 'failure',
-//                'sub_code' => 'sign-check-failure'
-//            ];
-//            $this->response()
-//                ->writeJsonWithNoCode(
-//                    Status::CODE_OK,
-//                    $result
-//                );
-//            $this->response()->end();
-//        };
+        if (false === \SpiUtils::checkSign4FileRequest(
+                $this->request()->getRequestParam(),
+                Config::getInstance()->getConf('ALI_EXPRESS.SECRET_KEY')
+            )
+        ){
+            $result = [
+                'sub_message' => 'Illegal request',
+                'flag' => 'failure',
+                'sub_code' => 'sign-check-failure'
+            ];
+            $this->response()
+                ->writeJsonWithNoCode(
+                    Status::CODE_OK,
+                    $result
+                );
+            $this->response()->end();
+        };
         $param = $this->getParam();
         $times = UserRequestTimesService::getInstance()->getTimesBySessionKey($param['session_key']);
         if ($times > CustomConst::MAX_USER_REQUEST_EVERY_DAY) {
