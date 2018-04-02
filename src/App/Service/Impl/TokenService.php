@@ -17,6 +17,7 @@ use App\Service\ITokenService;
 use App\Vendor\Aliexpress\AliexpressRuntimeException;
 use Core\Component\Di;
 use Core\Swoole\Async\Redis;
+use function PHPSTORM_META\elementType;
 
 class TokenService extends AbstractService implements ITokenService
 {
@@ -94,21 +95,39 @@ class TokenService extends AbstractService implements ITokenService
 
     function getAccountByAccessToken(string $accessToken): ?string
     {
+        $token = $this->getTokenByAccessToken($accessToken);
+        if ($token) {
+            return $token->getUserNick();
+        } else {
+            return null;
+        }
+    }
+
+
+    /**
+     * @param string $accessToken
+     * @return Token|null
+     */
+    function getTokenByAccessToken(string $accessToken): ?Token
+    {
         $data = $this->redis->get($this->getCacheAccessTokenTrueKey($accessToken));
         if (empty($data)) {
-            $account = $this->tokenModel->getOne(function (\MysqliDb $db) use ($accessToken) {
+            $data = $this->tokenModel->getOne(function (\MysqliDb $db) use ($accessToken) {
                 $db->where('access_token', $accessToken);
             });
-            if (!empty($account)) {
-                $data = $account->getUserNick();
+            if (!empty($data)) {
                 $this->redisPool->set(
                     $this->getCacheAccessTokenTrueKey($accessToken),
-                    $data,
+                    json_encode($data),
                     'EX',
                     CustomConst::CACHE_EXPIRE_SECONDS,
                     function () {
                     });
+            } else {
+                return null;
             }
+        } else {
+            $data = new Token(json_decode($data, true));
         }
         return $data;
     }
@@ -137,6 +156,8 @@ class TokenService extends AbstractService implements ITokenService
         }
         $token->setLimitApiTimes($times);
         $token->setMTime(time());
+        $this->redisPool->del($this->getCacheAccessTokenTrueKey($token->getAccessToken()), function () {
+        });
         return $this->tokenModel->update($id, $token);
     }
 

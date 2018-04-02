@@ -1,1 +1,0 @@
-{"session_key":"50002501335sCy0gukLpBWrh6idq3tUWgFGuHzhVzCi0Avp15b61be7ivfI76wfZGpc","method":"aliexpress.logistics.redefining.getfieldinfoforprint","token":"41b54de32fd0ed665fd67179cb70c898","international_logistics_id":"RY963308367CN"}

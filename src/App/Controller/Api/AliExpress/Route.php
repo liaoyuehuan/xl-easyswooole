@@ -11,6 +11,11 @@ namespace App\Controller\Api\AliExpress;
 
 use App\Consts\CustomConst;
 use App\Controller\Api\AbstractBase;
+use App\Filter\Action\CheckLimitRequestTimes;
+use App\Filter\Action\CheckSignFilter;
+use App\Filter\Action\CheckTokenFilter;
+use App\Filter\Action\IActionFilter;
+use App\Filter\Action\StatisticsRequestTimeFilter;
 use App\Http\Error;
 use App\Http\Result;
 use App\Http\ResultAckConst;
@@ -23,6 +28,13 @@ use Core\Http\Message\Status;
 
 class Route extends AbstractBase
 {
+
+    private $filterList = [
+        CheckSignFilter::class,
+        CheckLimitRequestTimes::class,
+        StatisticsRequestTimeFilter::class,
+        CheckTokenFilter::class
+    ];
 
     function index()
     {
@@ -37,57 +49,15 @@ class Route extends AbstractBase
 
     public function onRequest($actionName)
     {
-        if (false === \SpiUtils::checkSign4FileRequest(
-                $this->request()->getRequestParam(),
-                Config::getInstance()->getConf('ALI_EXPRESS.SECRET_KEY')
-            )
-        ){
-            $result = [
-                'sub_message' => 'Illegal request',
-                'flag' => 'failure',
-                'sub_code' => 'sign-check-failure'
-            ];
-            $this->response()
-                ->writeJsonWithNoCode(
-                    Status::CODE_OK,
-                    $result
-                );
-            $this->response()->end();
-        };
         $param = $this->getParam();
-        $times = UserRequestTimesService::getInstance()->getTimesBySessionKey($param['session_key']);
-        if ($times > CustomConst::MAX_USER_REQUEST_EVERY_DAY) {
-            $result = [
-                'sub_message' => 'request-limit',
-                'flag' => 'failure',
-                'sub_code' => 'you has requested the max times :' . CustomConst::MAX_USER_REQUEST_EVERY_DAY
-            ];
-            $this->response()
-                ->writeJsonWithNoCode(
-                    Status::CODE_OK,
-                    $result
-                );
-            $this->response()->end();
-            return false;
+        foreach ($this->filterList as $actionFilterClass) {
+            $actionFilter = $actionFilterClass::getInstance();
+            $canContinue = $actionFilter->requestHandler($this->request(), $this->response(), $param);
+            if ($canContinue === false) {
+                $this->response()->end();
+                return false;
+            }
         }
-        UserRequestTimesService::getInstance()->increaseBySessionKey($param['session_key']);
-        UserRequestTimesService::getInstance()->increaseAndPushSortedSetBySessionKey($param['session_key']);
-
-        if (!$this->checkToken()) {
-            $this->response()
-                ->writeJsonWithNoCode(
-                    Status::CODE_FORBIDDEN,
-                    new Result(ResultAckConst::FAIL,
-                        null,
-                        [new Error('Invalid Token!!',
-                            'This is an Invalid Token. Please enter a Valid Token!'
-                        )]
-                    )
-                );
-            $this->response()->end();
-            return false;
-        }
-
     }
 
     function rest()

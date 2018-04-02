@@ -37,8 +37,10 @@ interface ITokenService
 
     function getAccountByAccessToken(string $accessToken): ?string;
 
+    function getTokenByAccessToken(string $accessToken): ?Token;
+
     function updateStatus(string $id, int $status): bool;
 
-    function updateTimes(string $id,int $times): bool;
+    function updateTimes(string $id, int $times): bool;
 
 }

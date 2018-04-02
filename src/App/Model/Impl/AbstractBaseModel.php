@@ -126,7 +126,8 @@ abstract class AbstractBaseModel implements IBaseModel
     function getOne(callable $callable)
     {
         $callable !== null && $callable($this->db);
-        return $this->toBean($this->db->getOne($this->tableName, $this->columns));
+        $beanArray = $this->db->getOne($this->tableName, $this->columns);
+        return empty($beanArray) ? null : $this->toBean($beanArray);
     }
 
 
@@ -199,7 +200,7 @@ abstract class AbstractBaseModel implements IBaseModel
 
     private function getTableNameFromShortName($shortName)
     {
-        return strtolower(preg_replace('/(?<=[a-z])(?=[A-Z])/','_',$shortName));
+        return strtolower(preg_replace('/(?<=[a-z])(?=[A-Z])/', '_', $shortName));
     }
 
     protected function getColumns()
