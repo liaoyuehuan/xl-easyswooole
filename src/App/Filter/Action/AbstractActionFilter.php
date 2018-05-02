@@ -12,6 +12,9 @@ abstract class AbstractActionFilter implements IActionFilter
 {
     protected static $filterInstance;
 
+    /**
+     * @return IActionFilter
+     */
     public static function getInstance()
     {
         if (false === isset(static::$filterInstance[static::class])) {

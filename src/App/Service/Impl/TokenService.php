@@ -10,6 +10,7 @@ namespace App\Service\Impl;
 
 use App\Bean\Token;
 use App\Consts\CustomConst;
+use App\Model\Impl\CompanyModel;
 use App\Model\Impl\TokenModel;
 use App\Model\ITokenModel;
 use App\Service\AbstractService;
@@ -28,6 +29,11 @@ class TokenService extends AbstractService implements ITokenService
     private $tokenModel;
 
     /**
+     * @var CompanyModel
+     */
+    private $companyModel;
+
+    /**
      * @var \Redis
      */
     private $redis;
@@ -40,6 +46,7 @@ class TokenService extends AbstractService implements ITokenService
     public function __construct()
     {
         $this->tokenModel = TokenModel::getInstance();
+        $this->companyModel = CompanyModel::getInstance();
         $this->redis = Di::getInstance()->get(CustomConst::REDIS);
         $this->redisPool = Di::getInstance()->get(CustomConst::REDIS_POOL);
     }
@@ -158,6 +165,21 @@ class TokenService extends AbstractService implements ITokenService
         $token->setMTime(time());
         $this->redisPool->del($this->getCacheAccessTokenTrueKey($token->getAccessToken()), function () {
         });
+        return $this->tokenModel->update($id, $token);
+    }
+
+    function updateCompany(string $id, int $company_id): bool
+    {
+        $token = $this->tokenModel->get($id);
+        if (!$token) {
+            throw  new \RuntimeException('account not found:update error');
+        }
+        $company = $this->companyModel->get($company_id);
+        if (!$company) {
+            throw  new \RuntimeException('company not found:update error');
+        }
+        $token->setCompanyId($company_id);
+        $token->setMTime(time());
         return $this->tokenModel->update($id, $token);
     }
 

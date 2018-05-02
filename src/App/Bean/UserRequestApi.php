@@ -39,6 +39,7 @@ class UserRequestApi extends SplBean
      */
     protected $m_time;
 
+
     protected function initialize()
     {
         empty($this->c_time) && $this->c_time = time();

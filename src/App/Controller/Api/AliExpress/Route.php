@@ -9,17 +9,14 @@
 namespace App\Controller\Api\AliExpress;
 
 
-use App\Consts\CustomConst;
 use App\Controller\Api\AbstractBase;
 use App\Filter\Action\CheckLimitRequestTimes;
 use App\Filter\Action\CheckSignFilter;
 use App\Filter\Action\CheckTokenFilter;
-use App\Filter\Action\IActionFilter;
 use App\Filter\Action\StatisticsRequestTimeFilter;
 use App\Http\Error;
 use App\Http\Result;
 use App\Http\ResultAckConst;
-use App\Service\Impl\UserRequestTimesService;
 use App\Vendor\Aliexpress\AliexpressPub;
 use App\Vendor\Aliexpress\Exceptions\AliexpressMehtodNotOpen;
 use App\Vendor\Aliexpress\Exceptions\AliexpressRuntimeException;
@@ -64,10 +61,8 @@ class Route extends AbstractBase
     {
         try {
             $param = $this->getParam();
-//            file_put_contents('/var/www/easyswoole/App/Controller/Api/AliExpress/param.txt', json_encode($param));
             $response = AliexpressPub::getInstance()->execute($param);
             $this->hasParam() && $response = json_encode($response);
-//            file_put_contents('/var/www/easyswoole/App/Controller/Api/AliExpress/data.txt', $response);
             $this->response()->writeJsonWithNoCode(
                 Status::CODE_OK,
                 new Result(ResultAckConst::SUCCESS, $response

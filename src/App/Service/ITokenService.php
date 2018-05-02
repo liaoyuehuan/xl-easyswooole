@@ -43,4 +43,6 @@ interface ITokenService
 
     function updateTimes(string $id, int $times): bool;
 
+    function updateCompany(string $id, int $company_id): bool;
+
 }

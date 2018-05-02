@@ -5,7 +5,10 @@
  * Date: 2018/1/15/015
  * Time: 9:26
  */
+
 namespace App\Model;
+
+use App\Http\Pagination;
 
 interface IBaseModel
 {
@@ -15,18 +18,20 @@ interface IBaseModel
 
     function insertMulti(array $data);
 
-    function update($id,$data);
+    function update($id, $data);
 
     function select(callable $callable);
 
     function getOne(callable $callable);
 
-    function pagination($page,$limit, callable $callable = null);
+    function pagination($page, $limit, callable $callable = null): ?Pagination;
 
     function updateByWhere(callable $callable);
 
-    function insertGetInsertId($bean):string;
+    function insertGetInsertId($bean): ?string;
 
     function createSplBeanFromData(array $data);
+
+    function setAlias(string $alias);
 
 }

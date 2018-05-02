@@ -12,7 +12,6 @@ use App\Http\Pagination;
 use App\Model\IBaseModel;
 use App\Vendor\Db\DbFactory;
 use Core\Component\Spl\SplBean;
-use Core\Http\Response;
 
 abstract class AbstractBaseModel implements IBaseModel
 {
@@ -21,6 +20,7 @@ abstract class AbstractBaseModel implements IBaseModel
 
     protected $expectUpdatePro = [];
 
+    protected $alias = '';
     /**
      * @var SplBean
      */
@@ -72,7 +72,9 @@ abstract class AbstractBaseModel implements IBaseModel
      */
     function get($id)
     {
-        $data = $this->db->where($this->pk, $id)->getOne($this->tableName, $this->columns);
+        $tableName = $this->getAliasTableName();
+        $data = $this->db->where($this->pk, $id)->getOne($tableName, $this->columns);
+        $this->reset();
         return empty($data) ? null : $this->toBean($data);
     }
 
@@ -125,8 +127,10 @@ abstract class AbstractBaseModel implements IBaseModel
 
     function getOne(callable $callable)
     {
+        $tableName = $this->getAliasTableName();
         $callable !== null && $callable($this->db);
-        $beanArray = $this->db->getOne($this->tableName, $this->columns);
+        $beanArray = $this->db->getOne($tableName, $this->columns);
+        $this->reset();
         return empty($beanArray) ? null : $this->toBean($beanArray);
     }
 
@@ -139,8 +143,14 @@ abstract class AbstractBaseModel implements IBaseModel
      */
     function select($numRows = null, callable $callable = null)
     {
+        $tableName = $this->getAliasTableName();
         $callable !== null && $callable($this->db);
-        return $this->toBeanArray($this->db->get($this->tableName, $numRows, $this->columns));
+        try {
+            return $this->toBeanArray($this->db->get($tableName, $numRows, $this->columns));
+        } finally {
+            $this->reset();
+        }
+
     }
 
     /**
@@ -149,12 +159,17 @@ abstract class AbstractBaseModel implements IBaseModel
      * @param callable|null $callable
      * @return Pagination
      */
-    function pagination($page, $limit, callable $callable = null)
+    function pagination($page, $limit, callable $callable = null):Pagination
     {
+        $tableName = $this->getAliasTableName();
         $callable !== null && $callable($this->db);
         $this->db->pageLimit = $limit;
-        $data = $this->db->paginate($this->tableName, $page, $this->columns);;
-        return new Pagination($this->db->totalCount, $this->toBeanArray($data));
+        $data = $this->db->paginate($tableName, $page, $this->columns);;
+        try {
+            return new Pagination($this->db->totalCount, $this->toBeanArray($data));
+        } finally {
+            $this->reset();
+        }
     }
 
     /**\
@@ -168,7 +183,7 @@ abstract class AbstractBaseModel implements IBaseModel
         $this->db->update($this->tableName, $bean->toArray(), $numRows);
     }
 
-    function insertGetInsertId($bean): string
+    function insertGetInsertId($bean): ?string
     {
         if ($this->insert($bean)) {
             return $this->db->getInsertId();
@@ -180,7 +195,6 @@ abstract class AbstractBaseModel implements IBaseModel
 
     function createSplBeanFromData(array $data)
     {
-
         $filter_data = array_filter($data, function ($value) {
             if (in_array($value, $this->columns)) {
                 return true;
@@ -246,6 +260,31 @@ abstract class AbstractBaseModel implements IBaseModel
             $set = 'set' . $this->propertyToHump($value);
             $bean->$set(null);
         }
+    }
+
+    /**
+     * @param string $alias
+     * @return $this
+     */
+    public function setAlias(string $alias)
+    {
+        $this->alias = $alias;
+        return $this;
+    }
+
+    public function getTable(): string
+    {
+        return $this->tableName;
+    }
+
+    protected function getAliasTableName()
+    {
+        return $this->tableName . ' ' . $this->alias;
+    }
+
+    protected function reset(): void
+    {
+        $this->alias = '';
     }
 
 }

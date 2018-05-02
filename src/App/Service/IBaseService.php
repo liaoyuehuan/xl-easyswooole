@@ -11,13 +11,13 @@ namespace App\Service;
 interface IBaseService
 {
 
-    function get($id): string;
+    function get($id);
 
     function update($data): bool;
 
-    function insert($data): bool;
+    function insert($data);
 
-    function insertGetInsertId($bean): string;
+    function insertGetInsertId($bean): ?string;
 
     function select($param): array;
 }
